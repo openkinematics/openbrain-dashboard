@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Gamepad2, Eye } from "lucide-react";
-import { useTopic } from "@/components/ros";
+import { Gamepad2, Eye, ShieldAlert } from "lucide-react";
+import { useConnection, useTopic } from "@/components/ros";
 import type { TwistMsg } from "@/lib/types";
 import { useDashboardSettings } from "@/lib/use-dashboard-settings";
 import { clamp } from "@/lib/utils";
@@ -41,6 +41,7 @@ export function JoystickPad({
 }: JoystickPadProps) {
   const dash = useDashboardSettings();
   const { publish } = useTopic<TwistMsg>(topic, "geometry_msgs/Twist", { publishOnly: true });
+  const { status: rosStatus } = useConnection(false);
 
   // Two independent input vectors — touch joystick + gamepad — composed at
   // publish time so either source works without contention.
@@ -49,6 +50,8 @@ export function JoystickPad({
 
   const [touchVec, setTouchVec] = useState<Vec2>(ZERO);
   const [padConnected, setPadConnected] = useState(false);
+  // Deadman: tab hidden, window unfocused, or rosbridge dropped → publish 0.
+  const [deadman, setDeadman] = useState(false);
 
   const padRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: number | null; rect: DOMRect | null }>({ id: null, rect: null });
@@ -115,21 +118,48 @@ export function JoystickPad({
     return () => cancelAnimationFrame(raf);
   }, [enableGamepad, dash.gamepadAngularAxisIndex, dash.gamepadLinearAxisIndex]);
 
+  // ── Deadman: page hidden / window blurred → zero out inputs and stop sending ─
+  useEffect(() => {
+    const evaluate = () => {
+      const hidden = typeof document !== "undefined" && document.hidden;
+      const focused = typeof document !== "undefined" ? document.hasFocus() : true;
+      const dead = hidden || !focused;
+      setDeadman(dead);
+      if (dead) {
+        touchVecRef.current = ZERO;
+        padVecRef.current = ZERO;
+        setTouchVec(ZERO);
+      }
+    };
+    window.addEventListener("blur", evaluate);
+    window.addEventListener("focus", evaluate);
+    document.addEventListener("visibilitychange", evaluate);
+    evaluate();
+    return () => {
+      window.removeEventListener("blur", evaluate);
+      window.removeEventListener("focus", evaluate);
+      document.removeEventListener("visibilitychange", evaluate);
+    };
+  }, []);
+
   // ── Publish loop ───────────────────────────────────────────────────────────
   useEffect(() => {
     const interval = Math.max(20, Math.round(1000 / rateHz));
     const id = setInterval(() => {
+      // Deadman + lost-connection → publish a zero Twist. Sending it
+      // explicitly (rather than skipping the publish) ensures the bot stops
+      // even if its controller had a stale velocity goal.
       const t = touchVecRef.current;
       const p = padVecRef.current;
       let tx = t.x;
       if (dash.invertJoystickLR) tx *= -1;
       const tAdj = { x: tx, y: t.y };
-      // Pad takes precedence when active; otherwise use touch.
       const dominant = Math.hypot(p.x, p.y) > Math.hypot(tAdj.x, tAdj.y) ? p : tAdj;
       const viz = dash.joystickVisualizationOnly;
+      const stopped = deadman || rosStatus !== "connected";
       const msg: TwistMsg = {
-        linear: { x: viz ? 0 : dominant.y * maxLinear, y: 0, z: 0 },
-        angular: { x: 0, y: 0, z: viz ? 0 : dominant.x * maxAngular },
+        linear: { x: stopped || viz ? 0 : dominant.y * maxLinear, y: 0, z: 0 },
+        angular: { x: 0, y: 0, z: stopped || viz ? 0 : dominant.x * maxAngular },
       };
       void publish(msg);
     }, interval);
@@ -141,6 +171,8 @@ export function JoystickPad({
     maxAngular,
     dash.invertJoystickLR,
     dash.joystickVisualizationOnly,
+    deadman,
+    rosStatus,
   ]);
 
   const knobStyle = useMemo(
@@ -180,6 +212,11 @@ export function JoystickPad({
         {dash.joystickVisualizationOnly && (
           <Badge variant="warning" className="gap-1">
             <Eye className="h-3 w-3" /> viz only
+          </Badge>
+        )}
+        {deadman && (
+          <Badge variant="warning" className="gap-1" title="Tab inactive — sending zero velocity">
+            <ShieldAlert className="h-3 w-3" /> deadman
           </Badge>
         )}
         {padConnected && (

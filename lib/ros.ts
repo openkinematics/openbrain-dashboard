@@ -28,6 +28,11 @@ const listeners = new Set<Listener>();
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempt = 0;
 
+// When true, every connect/reconnect attempt is short-circuited. Set by the
+// `<DemoModeGuard>` when the URL carries `?demo=1` so the synthetic data path
+// is the only thing running — no console noise from a backend that isn't there.
+let demoMode = false;
+
 async function loadRosConstructor(): Promise<(typeof import("roslib"))["Ros"]> {
   if (!RosCtor) {
     const { Ros } = await import("roslib");
@@ -43,7 +48,7 @@ function setStatus(next: RosStatus, detail?: string) {
 }
 
 function scheduleReconnect(url: string) {
-  if (reconnectTimer) return;
+  if (demoMode || reconnectTimer) return;
   const delay = Math.min(10_000, 500 * 2 ** reconnectAttempt);
   reconnectAttempt += 1;
   reconnectTimer = setTimeout(() => {
@@ -61,11 +66,41 @@ function clearReconnect() {
 }
 
 /**
+ * Toggle global demo mode. When on, no rosbridge socket is opened and
+ * any in-flight retry timer is cleared. The current Ros instance (if any)
+ * is closed so subscribers see "idle".
+ */
+export function setDemoMode(next: boolean) {
+  if (demoMode === next) return;
+  demoMode = next;
+  if (next) {
+    clearReconnect();
+    if (currentRos) {
+      try {
+        currentRos.close();
+      } catch {
+        /* ignore */
+      }
+    }
+    currentRos = null;
+    currentUrl = null;
+    setStatus("idle");
+  }
+}
+
+export function isDemoMode(): boolean {
+  return demoMode;
+}
+
+/**
  * Connect (or reconnect) to a rosbridge URL. Idempotent: passing the same URL
  * while already connected/connecting is a no-op unless `force` is true.
+ *
+ * Returns null in demo mode — callers should handle that as "not connected".
  */
 export async function connect(url?: string, force = false): Promise<Ros | null> {
   if (!isBrowser()) return null;
+  if (demoMode) return null;
   const target = (url ?? getRosbridgeUrl()).trim();
   if (!target) return null;
 
@@ -113,6 +148,7 @@ export function getRos(): Ros | null {
 
 /** Get-or-connect: useful for hooks that want a Ros handle eagerly. */
 export async function ensureRos(): Promise<Ros | null> {
+  if (demoMode) return null;
   if (currentRos && currentStatus === "connected") return currentRos;
   return connect();
 }
@@ -142,4 +178,30 @@ export function disconnect() {
   currentRos = null;
   currentUrl = null;
   setStatus("idle");
+}
+
+/**
+ * Resolve once the connection settles (`connected` or `error`) or the timeout
+ * elapses. Replaces the ad-hoc 100 ms polling loops in `/`, `/fleet`, etc.
+ */
+export function waitForConnection(timeoutMs = 4000): Promise<RosStatus> {
+  return new Promise((resolve) => {
+    if (currentStatus === "connected" || currentStatus === "error") {
+      resolve(currentStatus);
+      return;
+    }
+    const start = Date.now();
+    const tick = () => {
+      if (currentStatus === "connected" || currentStatus === "error") {
+        resolve(currentStatus);
+        return;
+      }
+      if (Date.now() - start >= timeoutMs) {
+        resolve(currentStatus);
+        return;
+      }
+      setTimeout(tick, 100);
+    };
+    tick();
+  });
 }

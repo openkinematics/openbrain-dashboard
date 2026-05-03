@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getStatus } from "@/lib/ros";
+import { getStatus, waitForConnection } from "@/lib/ros";
 import {
   deleteFleetRobot,
   loadPreferences,
@@ -173,19 +173,7 @@ export default function FleetPage() {
     setBusyId(robot.id);
     try {
       await connectFleetRobot(robot, true);
-      let attempts = 0;
-      await new Promise<void>((resolve) => {
-        const tick = () => {
-          const s = getStatus();
-          if (s.status === "connected" || s.status === "error" || attempts > 40) {
-            resolve();
-            return;
-          }
-          attempts += 1;
-          setTimeout(tick, 100);
-        };
-        tick();
-      });
+      await waitForConnection(4000);
       if (getStatus().status === "connected") {
         logFleetConnectSuccess(robot);
         refresh();

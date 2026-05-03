@@ -1,7 +1,8 @@
 "use client";
 
 import { ThemeProvider as NextThemesProvider } from "next-themes";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import { DemoModeGuard } from "./demo-mode-guard";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -11,6 +12,10 @@ export function Providers({ children }: { children: ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
+      {/* Guard reads the URL — wrap in Suspense so it doesn't break SSR. */}
+      <Suspense fallback={null}>
+        <DemoModeGuard />
+      </Suspense>
       {children}
     </NextThemesProvider>
   );

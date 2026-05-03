@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRobotById, subscribePreferences } from "@/lib/preferences";
 import { connectFleetRobot, logFleetConnectSuccess } from "@/lib/robot-connect";
-import { getStatus } from "@/lib/ros";
+import { getStatus, waitForConnection } from "@/lib/ros";
 import type { FleetRobot } from "@/lib/types";
 import { useDemoModeFromUrl, withDemoHref } from "@/lib/demo-routing";
 
@@ -36,18 +36,7 @@ export default function RobotDetailPage() {
     setBusy(true);
     try {
       await connectFleetRobot(robot, true);
-      let n = 0;
-      await new Promise<void>((resolve) => {
-        const tick = () => {
-          if (getStatus().status === "connected" || getStatus().status === "error" || n > 40) {
-            resolve();
-            return;
-          }
-          n += 1;
-          setTimeout(tick, 100);
-        };
-        tick();
-      });
+      await waitForConnection(4000);
       if (getStatus().status === "connected") {
         logFleetConnectSuccess(robot);
         router.push(withDemoHref("/cockpit", demoMode));

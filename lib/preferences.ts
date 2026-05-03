@@ -96,7 +96,16 @@ export function loadPreferences(): Preferences {
   }
 }
 
-export function savePreferences(prefs: Partial<Preferences>) {
+/**
+ * Patch shape: top-level keys are partial, plus `dashboard` accepts a partial
+ * patch (existing values are preserved). `cockpitMyUILayout` is replaced
+ * wholesale because layouts are saved atomically by react-grid-layout.
+ */
+export type PreferencesPatch = Partial<Omit<Preferences, "dashboard">> & {
+  dashboard?: Partial<DashboardSettings>;
+};
+
+export function savePreferences(prefs: PreferencesPatch) {
   if (!isBrowser()) return;
   const prev = loadPreferences();
   const { dashboard: dashPatch, cockpitMyUILayout: layoutPatch, ...rest } = prefs;

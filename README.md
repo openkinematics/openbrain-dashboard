@@ -4,8 +4,11 @@ OpenBrain Dashboard is a web operator console for robots running the OpenBrain s
 
 Built by [OpenKinematics](https://www.openkinematics.com), a robotics company building practical tools for real-world robot skills and deployment.
 
+**Live demo:** [dashboard.openkinematics.com/cockpit?demo=1](https://dashboard.openkinematics.com/cockpit?demo=1) — full UI driven by synthetic data, no robot required.
+
 [![CI](https://github.com/openkinematics/openbrain-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/openkinematics/openbrain-dashboard/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![Live demo](https://img.shields.io/badge/demo-dashboard.openkinematics.com-0066FF)](https://dashboard.openkinematics.com/cockpit?demo=1)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org)
 [![ROS 2](https://img.shields.io/badge/ROS-2-22314E)](https://docs.ros.org)
 
@@ -33,13 +36,19 @@ Use it for:
 
 ## Demo Mode
 
-Open any route with `?demo=1` to keep the UI in demo mode:
+Try it instantly on the hosted preview — no install required:
+
+- [dashboard.openkinematics.com/cockpit?demo=1](https://dashboard.openkinematics.com/cockpit?demo=1) — teleop with synthetic camera, joystick, map, and 3D model
+- [/health?demo=1](https://dashboard.openkinematics.com/health?demo=1) — live-updating CPU, GPU, RAM, thermal, and power gauges
+- [/maps?demo=1](https://dashboard.openkinematics.com/maps?demo=1), [/missions?demo=1](https://dashboard.openkinematics.com/missions?demo=1), [/fleet?demo=1](https://dashboard.openkinematics.com/fleet?demo=1)
+
+Locally, append `?demo=1` to any route:
 
 ```text
 http://localhost:3000/cockpit?demo=1
 ```
 
-Demo mode is useful for hosted demos, screenshots, reviews, and development without a robot. It keeps the demo flag while navigating through the dashboard.
+Demo mode is useful for hosted demos, screenshots, reviews, and development without a robot. The flag is preserved as you navigate between pages.
 
 ## Quick Start
 
@@ -85,11 +94,16 @@ More deployment notes are in [`docs/deploying.md`](./docs/deploying.md).
 
 All `NEXT_PUBLIC_*` values are inlined at build time. Operators can still override rosbridge and video defaults from **Profile** or **Fleet**; those values persist in localStorage.
 
-| Variable                                  | Default                 | Purpose                                    |
-| ----------------------------------------- | ----------------------- | ------------------------------------------ |
-| `NEXT_PUBLIC_ROSBRIDGE_URL`               | `ws://localhost:9090`   | Default rosbridge WebSocket                |
-| `NEXT_PUBLIC_VIDEO_BASE_URL`              | `http://localhost:8080` | Default OpenBrain video streamer           |
-| `NEXT_PUBLIC_CAMERA_NO_SIGNAL_POSTER_URL` | bundled fallback image  | Optional camera loading/no-signal backdrop |
+| Variable                                  | Default                                | Purpose                                                                 |
+| ----------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------- |
+| `NEXT_PUBLIC_ROSBRIDGE_URL`               | `ws://localhost:9090`                  | Default rosbridge WebSocket                                             |
+| `NEXT_PUBLIC_VIDEO_BASE_URL`              | `http://localhost:8080`                | Default OpenBrain video streamer                                        |
+| `NEXT_PUBLIC_DEPLOYMENT_URL`              | `https://dashboard.openkinematics.com` | Public origin used by `sitemap.xml`, `robots.txt`, and OG metadata      |
+| `NEXT_PUBLIC_STUN_URLS`                   | `stun:stun.l.google.com:19302`         | Comma-separated STUN URLs for WebRTC                                    |
+| `NEXT_PUBLIC_TURN_URLS`                   | _(unset)_                              | Comma-separated TURN URLs (required for clients behind symmetric NAT)   |
+| `NEXT_PUBLIC_TURN_USERNAME`               | _(unset)_                              | TURN username                                                           |
+| `NEXT_PUBLIC_TURN_CREDENTIAL`             | _(unset)_                              | TURN credential                                                         |
+| `NEXT_PUBLIC_CAMERA_NO_SIGNAL_POSTER_URL` | bundled fallback image                 | Optional camera loading/no-signal backdrop                              |
 
 OpenKinematics links are fixed in code:
 
@@ -98,15 +112,19 @@ OpenKinematics links are fixed in code:
 
 ## Scripts
 
-| Command             | Description                               |
-| ------------------- | ----------------------------------------- |
-| `pnpm dev`          | Start the Next.js dev server with webpack |
-| `pnpm build`        | Create a production build with webpack    |
-| `pnpm start`        | Serve the production build                |
-| `pnpm lint`         | Run ESLint                                |
-| `pnpm typecheck`    | Run TypeScript without emitting files     |
-| `pnpm format`       | Format the project with Prettier          |
-| `pnpm format:check` | Check Prettier formatting without writing |
+| Command              | Description                                                |
+| -------------------- | ---------------------------------------------------------- |
+| `pnpm dev`           | Start the Next.js dev server with webpack                  |
+| `pnpm build`         | Create a production build with webpack                     |
+| `pnpm start`         | Serve the production build                                 |
+| `pnpm lint`          | Run ESLint                                                 |
+| `pnpm typecheck`     | Run TypeScript without emitting files                      |
+| `pnpm test`          | Run unit tests in watch mode (Vitest)                      |
+| `pnpm test:run`      | Run unit tests once (CI)                                   |
+| `pnpm test:coverage` | Run tests with V8 coverage                                 |
+| `pnpm analyze`       | Production build with bundle analyzer (`ANALYZE=1`)        |
+| `pnpm format`        | Format the project with Prettier                           |
+| `pnpm format:check`  | Check Prettier formatting without writing                  |
 
 ## Tech Stack
 

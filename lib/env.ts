@@ -25,6 +25,13 @@ export const MARKETING_URL = "https://www.openkinematics.com";
 
 export const DASHBOARD_REPO_URL = "https://github.com/openkinematics/openbrain-dashboard";
 
+/**
+ * Public origin of the deployed dashboard. Used by `app/sitemap.ts`,
+ * `app/robots.ts`, and OG metadata. Override in production.
+ */
+export const DEPLOYMENT_URL =
+  process.env.NEXT_PUBLIC_DEPLOYMENT_URL?.trim() || "https://dashboard.openkinematics.com";
+
 export function getRosbridgeUrl(): string {
   if (!isBrowser()) return DEFAULT_ROSBRIDGE_URL;
   return localStorage.getItem(KEYS.rosbridge)?.trim() || DEFAULT_ROSBRIDGE_URL;
@@ -45,4 +52,36 @@ export function setVideoBaseUrl(url: string) {
   if (!isBrowser()) return;
   if (url.trim()) localStorage.setItem(KEYS.video, url.trim());
   else localStorage.removeItem(KEYS.video);
+}
+
+/**
+ * Build the WebRTC ICE server list from env. STUN defaults to a Google public
+ * server; TURN must be configured by the operator — without it, peers behind
+ * symmetric NAT silently fall back to MJPEG.
+ *
+ *   NEXT_PUBLIC_STUN_URLS=stun:foo:3478,stun:bar:3478
+ *   NEXT_PUBLIC_TURN_URLS=turn:turn.example.com:3478?transport=udp
+ *   NEXT_PUBLIC_TURN_USERNAME=user
+ *   NEXT_PUBLIC_TURN_CREDENTIAL=pass
+ */
+export function getIceServers(): RTCIceServer[] {
+  const stunUrls = (process.env.NEXT_PUBLIC_STUN_URLS ?? "stun:stun.l.google.com:19302")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const turnUrls = (process.env.NEXT_PUBLIC_TURN_URLS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const servers: RTCIceServer[] = [];
+  if (stunUrls.length) servers.push({ urls: stunUrls });
+  if (turnUrls.length) {
+    servers.push({
+      urls: turnUrls,
+      username: process.env.NEXT_PUBLIC_TURN_USERNAME,
+      credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL,
+    });
+  }
+  return servers;
 }

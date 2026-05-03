@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Bot, Clock, History, Layers, Plug, Settings, Star } from "lucide-react";
-import { connect, getStatus } from "@/lib/ros";
+import { connect, getStatus, waitForConnection } from "@/lib/ros";
 import { setRosbridgeUrl, getRosbridgeUrl, setVideoBaseUrl, getVideoBaseUrl } from "@/lib/env";
 import {
   appendActivity,
@@ -65,25 +65,11 @@ export default function HomePage() {
       setError("could not initialize rosbridge client");
       return;
     }
-    // Wait briefly for the connection event before navigating.
-    let attempts = 0;
-    const wait = () =>
-      new Promise<void>((resolve) => {
-        const tick = () => {
-          const s = getStatus();
-          if (s.status === "connected" || attempts > 30) {
-            setStatus(s.status);
-            setError(s.error);
-            resolve();
-            return;
-          }
-          attempts += 1;
-          setTimeout(tick, 100);
-        };
-        tick();
-      });
-    await wait();
-    if (getStatus().status === "connected") {
+    await waitForConnection(3000);
+    const s = getStatus();
+    setStatus(s.status);
+    setError(s.error);
+    if (s.status === "connected") {
       appendActivity("connect", `Connected (manual entry)`);
       router.push(withDemoHref("/cockpit", demoMode));
     }
@@ -97,22 +83,11 @@ export default function HomePage() {
     await connectFleetRobot(fav, true);
     setStatus("connecting");
     setError(undefined);
-    let attempts = 0;
-    await new Promise<void>((resolve) => {
-      const tick = () => {
-        const s = getStatus();
-        if (s.status === "connected" || s.status === "error" || attempts > 40) {
-          setStatus(s.status);
-          setError(s.error);
-          resolve();
-          return;
-        }
-        attempts += 1;
-        setTimeout(tick, 100);
-      };
-      tick();
-    });
-    if (getStatus().status === "connected") {
+    await waitForConnection(4000);
+    const s = getStatus();
+    setStatus(s.status);
+    setError(s.error);
+    if (s.status === "connected") {
       appendActivity("connect", `Quick connect: ${fav.name}`);
       router.push(withDemoHref("/cockpit", demoMode));
     }

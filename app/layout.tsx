@@ -36,6 +36,19 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.svg",
   },
+  // Operator dashboard: not for search results. Discovery should happen at the
+  // marketing site (openkinematics.com) and via direct shares (OG metadata
+  // still works regardless of indexing).
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  },
 };
 
 export const viewport: Viewport = {

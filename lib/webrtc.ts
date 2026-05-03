@@ -9,7 +9,7 @@
 
 "use client";
 
-import { getVideoBaseUrl } from "./env";
+import { getIceServers, getVideoBaseUrl } from "./env";
 
 export type StreamMode = "webrtc" | "mjpeg" | "error";
 
@@ -21,8 +21,6 @@ export interface StreamHandle {
   /** Last error message, if any. */
   error?: string;
 }
-
-const ICE_SERVERS: RTCIceServer[] = [{ urls: ["stun:stun.l.google.com:19302"] }];
 
 /**
  * Attach a remote video track from openbrain-ros to a `<video>` element.
@@ -74,7 +72,7 @@ export async function subscribeStream(
   }
 
   try {
-    pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    pc = new RTCPeerConnection({ iceServers: getIceServers() });
     pc.addTransceiver("video", { direction: "recvonly" });
 
     const remoteStream = new MediaStream();
