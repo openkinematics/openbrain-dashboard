@@ -1,0 +1,175 @@
+@import "tailwindcss";
+@import "react-grid-layout/css/styles.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- Design tokens (OpenKinematics) ----------
+ * Light + dark sibling palettes. Switched by toggling `.dark` on <html>.
+ * Source of truth: openkinematics-landing/app/globals.css.
+ */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(0.97 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.55 0.19 250);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.95 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.95 0 0);
+  --muted-foreground: oklch(0.45 0 0);
+  --accent: oklch(0.95 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.78 0.16 85);
+  --success: oklch(0.7 0.17 155);
+  --border: oklch(0.88 0 0);
+  --input: oklch(0.88 0 0);
+  --ring: oklch(0.55 0.19 250);
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: oklch(0.07 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.11 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.11 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.65 0.2 250);
+  --primary-foreground: oklch(0.07 0 0);
+  --secondary: oklch(0.18 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.18 0 0);
+  --muted-foreground: oklch(0.7 0 0);
+  --accent: oklch(0.18 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.82 0.17 85);
+  --success: oklch(0.75 0.18 155);
+  --border: oklch(0.18 0 0);
+  --input: oklch(0.22 0 0);
+  --ring: oklch(0.65 0.2 250);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-orbitron: var(--font-orbitron);
+  --font-geist: var(--font-geist);
+  --font-geist-mono: var(--font-geist-mono);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html,
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+
+  body {
+    font-family:
+      var(--font-geist),
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+    /* Notched phones: header uses safe-area-inset-top; main bottom padding + MobileDock use inset-bottom */
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-orbitron), var(--font-geist), system-ui, sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  code,
+  pre,
+  kbd {
+    font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  /* Remove number input spinners — we use them for IPs, ports, etc. */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Touch targets ≥ 44px (PLAN.md). */
+  button,
+  [role="button"],
+  a {
+    touch-action: manipulation;
+  }
+
+  /* Better focus rings — high contrast on the electric-blue ring. */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  /* Subtle grid background for landing-style sections. */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, var(--color-border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--color-border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* react-grid-layout placeholder — theme-aware (library default is red) */
+.react-grid-item.react-grid-placeholder {
+  background: oklch(0.55 0.19 250 / 0.25);
+}
+
+.dark .react-grid-item.react-grid-placeholder {
+  background: oklch(0.55 0.19 250 / 0.35);
+}
